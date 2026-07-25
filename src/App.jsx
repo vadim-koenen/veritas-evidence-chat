@@ -4,7 +4,10 @@ import Header from './components/Header';
 import ChatWindow from './components/ChatWindow';
 import EvidencePanel from './components/EvidencePanel';
 import NewQueryModal from './components/NewQueryModal';
+import PricingModal from './components/PricingModal';
 import { MOCK_CHATS } from './data/mockData';
+import { fetchLiveAcademicEvidence } from './services/academicApi';
+import { runMultiAgentSynthesis } from './services/multiAgentEngine';
 
 export default function App() {
   const [chats, setChats] = useState(MOCK_CHATS);
@@ -13,6 +16,7 @@ export default function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [selectedSource, setSelectedSource] = useState(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   // Global Sensitivity Parameters State
   const [sensitivity, setSensitivity] = useState({
@@ -35,12 +39,11 @@ export default function App() {
   };
 
   const handleSendFollowUp = (text) => {
-    // Append simulated system response or update conversation
     const updatedChats = chats.map(c => {
       if (c.id === activeChatId) {
         return {
           ...c,
-          summary: `${c.summary}\n\n[Follow-up Audit Response]: "${text}" - Adversarial verification completed against ${c.sources.length} active database records. Truth certainty re-evaluated.`
+          summary: `${c.summary}\n\n[Follow-up Audit Response]: "${text}" - Re-evaluating ${c.sources.length} active database records against current parameter bounds.`
         };
       }
       return c;
@@ -48,52 +51,29 @@ export default function App() {
     setChats(updatedChats);
   };
 
-  const handleCreateNewQuery = (newQueryData) => {
+  // REAL LIVE ACADEMIC FETCH + MULTI-AGENT SYNTHESIS PIPELINE
+  const handleCreateNewQuery = async (newQueryData) => {
+    // 1. Fetch live real papers from PubMed & CrossRef
+    const livePapers = await fetchLiveAcademicEvidence(newQueryData.queryText);
+
+    // 2. Run Triangulated Adversarial Multi-Agent Engine
+    const synthesisResult = await runMultiAgentSynthesis(
+      newQueryData.queryText, 
+      livePapers, 
+      {
+        minSampleSize: newQueryData.minN,
+        requireRCT: newQueryData.rctOnly,
+        excludeCOI: true
+      }
+    );
+
     const newChat = {
       id: `query-${Date.now()}`,
       categoryId: newQueryData.category,
       title: newQueryData.queryText,
-      subtitle: `Custom Adversarial Audit (N > ${newQueryData.minN})`,
+      subtitle: `Live PubMed & CrossRef Multi-Agent Audit (N > ${newQueryData.minN})`,
       timestamp: 'Just now',
-      consensusGrade: 'HIGH',
-      truthConfidence: 84,
-      gradeDescription: 'Multi-agent adversarial synthesis completed with verified RCT constraints.',
-      query: newQueryData.queryText,
-      summary: `Adversarial synthesis completed for hypothesis: "${newQueryData.queryText}". Primary literature retrieved with minimum sample size ${newQueryData.minN} shows strong consensus.`,
-      proponentAgent: {
-        thesis: 'Peer-reviewed clinical trials support the core hypothesis with statistically significant effect sizes (p < 0.01).',
-        keyPoints: [
-          { text: 'Primary cohort study confirmed positive response in 82% of subjects.', strength: 'High Significance' },
-          { text: 'Independent laboratory replication verified biochemical pathway activation.', strength: 'Replicated' }
-        ]
-      },
-      skepticAgent: {
-        thesis: 'Potential confounders include age-stratified subgroup variations and missing long-term follow-up endpoints.',
-        keyPoints: [
-          { text: 'Sample size restricted to specific geographic demographic.', strength: 'Demographic Bias' },
-          { text: 'Publication bias detected in initial un-indexed pilot results.', strength: 'Reporting Risk' }
-        ]
-      },
-      sensitivityDefaults: {
-        minSampleSize: newQueryData.minN,
-        recencyYears: 5,
-        requireRCT: newQueryData.rctOnly,
-        excludeCOI: true
-      },
-      sources: [
-        {
-          id: `s-${Date.now()}`,
-          title: `Empirical Evaluation of ${newQueryData.queryText.slice(0, 40)}...`,
-          journal: 'Nature Medicine',
-          year: 2025,
-          type: newQueryData.rctOnly ? 'Double-Blind RCT' : 'Meta-Analysis',
-          sampleSize: newQueryData.minN * 5,
-          doi: '10.1038/s41591-025-0991',
-          credibilityScore: 95,
-          coiFlag: false,
-          excerpt: 'Verified significant outcome with low risk of bias across multi-center clinical trials.'
-        }
-      ]
+      ...synthesisResult
     };
 
     setChats([newChat, ...chats]);
@@ -129,6 +109,7 @@ export default function App() {
           isPanelOpen={isPanelOpen}
           onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
           onExportReport={handleExportReport}
+          onOpenPricing={() => setIsPricingOpen(true)}
           sensitivity={sensitivity}
         />
 
@@ -157,6 +138,12 @@ export default function App() {
         isOpen={isNewModalOpen}
         onClose={() => setIsNewModalOpen(false)}
         onSubmitQuery={handleCreateNewQuery}
+      />
+
+      {/* Stripe Pricing & Checkout Modal */}
+      <PricingModal
+        isOpen={isPricingOpen}
+        onClose={() => setIsPricingOpen(false)}
       />
     </div>
   );

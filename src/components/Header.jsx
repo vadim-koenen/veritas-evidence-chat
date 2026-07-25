@@ -1,14 +1,9 @@
 import React from 'react';
 import { 
-  ShieldCheck, 
-  Layers, 
   Download, 
   Sliders, 
-  Sparkles, 
-  ExternalLink,
-  Activity,
-  CheckCircle2,
-  FileCheck
+  CreditCard,
+  Sparkles
 } from 'lucide-react';
 
 export default function Header({ 
@@ -16,7 +11,7 @@ export default function Header({
   isPanelOpen, 
   onTogglePanel, 
   onExportReport,
-  sensitivity
+  onOpenPricing
 }) {
   if (!activeChat) return null;
 
@@ -46,14 +41,14 @@ export default function Header({
 
       {/* Control Actions & Verification Bar */}
       <div className="flex items-center gap-3 flex-shrink-0">
-        {/* Live Engine Indicator */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#141b2d] border border-slate-800 text-xs text-slate-300">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-          </span>
-          <span className="font-mono text-[11px]">Adversarial Multi-Agent Engine Active</span>
-        </div>
+        {/* Stripe Upgrade Button */}
+        <button
+          onClick={onOpenPricing}
+          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Upgrade to PRO</span>
+        </button>
 
         {/* Export Button */}
         <button
@@ -75,7 +70,7 @@ export default function Header({
           }`}
         >
           <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Evidence Graph & Sensitivity</span>
+          <span>Graph & Sensitivity</span>
         </button>
       </div>
     </header>
