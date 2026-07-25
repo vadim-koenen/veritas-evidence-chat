@@ -1,0 +1,33 @@
+PROPRIETARY & COMMERCIAL SOFTWARE LICENSE AGREEMENT
+Copyright (c) 2026 Vadim Koenen. All Rights Reserved.
+
+TRADEMARK NOTICE:
+"VERITAS AI", "VERITAS", and "Triangulated Adversarial Evidence Synthesis" ("TAES") 
+are trademarks of Vadim Koenen.
+
+PROPRIETARY & TRADE SECRET NOTICE:
+The software algorithms, multi-agent synthesis protocols, GRADE framework 
+weighting calculations, and backend architecture contained herein constitute 
+valuable trade secrets and proprietary intellectual property.
+
+TERMS AND CONDITIONS:
+
+1. RESTRICTIONS:
+   Permission is hereby DENIED to any person or entity obtaining a copy of this 
+   software and associated documentation files (the "Software"), to deal in the 
+   Software without restriction, including without limitation the rights to use, 
+   copy, modify, merge, publish, distribute, sublicense, and/or sell copies of 
+   the Software for commercial purposes.
+
+2. NON-COMPETE & CLONING PROHIBITION:
+   Unauthorized commercial deployment, public cloning, or rebranding of the 
+   Triangulated Adversarial Multi-Agent Engine architecture is strictly prohibited 
+   under applicable federal trade secret and copyright laws (including the US Defend 
+   Trade Secrets Act).
+
+3. PATENT PENDING NOTICE:
+   Certain core aspects of the multi-agent adversarial evaluation pipeline, 
+   sensitivity weighting simulator, and automated conflict-of-interest audit engine 
+   are subject to pending patent applications.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
