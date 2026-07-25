@@ -18,7 +18,6 @@
     <script type="text/babel">
       const { useState, useEffect } = React;
 
-      // Real Live PubMed + SEC EDGAR Search API
       async function fetchAcademicAndSEC(queryText) {
         try {
           const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(queryText)}&retmode=json&retmax=3`;
@@ -49,13 +48,12 @@
             });
           }
 
-          // Add SEC EDGAR Benchmark record for VC/PE queries
           results.push({
             id: 'sec-edgar-live',
             title: `SEC EDGAR Public Benchmark: ${queryText}`,
             journal: 'U.S. SEC EDGAR Corporate Filings (10-K / S-1 Analytics)',
             year: 2025,
-            type: 'Official SEC EDGAR Benchmark',
+            type: 'Official SEC Filing Benchmark',
             sampleSize: 140,
             doi: 'https://www.sec.gov/edgar',
             credibilityScore: 98,
@@ -111,43 +109,6 @@
               credibilityScore: 98,
               coiFlag: false,
               excerpt: 'Public software companies with COGS > 35% (LLM token costs) trade at a 40% discount to high-margin SaaS peers (75%+ gross margin).'
-            }
-          ]
-        },
-        {
-          id: 'query-1',
-          categoryId: 'biotech',
-          title: 'Metformin Healthspan & All-Cause Mortality in Non-Diabetics',
-          subtitle: 'Human longevity trials & meta-analyses evaluation',
-          timestamp: '15 mins ago',
-          consensusGrade: 'MODERATE',
-          truthConfidence: 68,
-          gradeDescription: 'Promising observational data, but RCT evidence in non-diabetic humans remains pending final TAME endpoints.',
-          query: 'Does Metformin extend healthspan and reduce all-cause mortality in non-diabetic human populations?',
-          summary: 'While Metformin significantly reduces all-cause mortality in type 2 diabetic patients compared to non-diabetic controls, evidence in non-diabetic healthy adults shows mixed metabolic shifts.',
-          proponentAgent: {
-            thesis: 'Metformin activates AMPK, inhibits mTORC1, and decreases systemic IL-6/TNF-alpha.',
-            keyPoints: [
-              { text: 'Meta-analysis of 61 observational studies (N=210,000) showed 24% reduction in all-cause mortality vs non-diabetics.', strength: 'High observational' }
-            ]
-          },
-          skepticAgent: {
-            thesis: 'Retrospective observational studies suffer from selection bias; recent RCTs show Metformin blunts VO2 max improvements.',
-            keyPoints: [
-              { text: 'MASTERS Trial (2019, N=109 RCT): Metformin blunted skeletal muscle hypertrophic response.', strength: 'RCT (High Quality)' }
-            ]
-          },
-          sources: [
-            {
-              id: 's1',
-              title: 'Metformin as a Longevity Agent: Systematic Review & Meta-Analysis',
-              journal: 'Cell Metabolism',
-              year: 2024,
-              type: 'Systematic Review & Meta-Analysis',
-              sampleSize: 210000,
-              credibilityScore: 92,
-              coiFlag: false,
-              excerpt: 'Metformin treated individuals exhibited lower mortality rates (HR 0.76) relative to non-diabetic controls.'
             }
           ]
         }
@@ -230,7 +191,6 @@
                 <span>+ New Adversarial Audit</span>
               </button>
 
-              {/* Vertical Filter */}
               <div className="mt-4 space-y-1">
                 <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-1">
                   Knowledge Verticals
@@ -327,7 +287,13 @@
                         onClick={() => setActiveTab('debate')}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTab === 'debate' ? 'bg-indigo-600 text-white' : 'bg-[#12192b] text-slate-400'}`}
                       >
-                        Adversarial Multi-Agent Debate
+                        Adversarial Debate Split
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('matrix')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTab === 'matrix' ? 'bg-indigo-600 text-white' : 'bg-[#12192b] text-slate-400'}`}
+                      >
+                        Evidence Matrix Table
                       </button>
                     </div>
 
@@ -345,6 +311,38 @@
                           <h4 className="text-xs font-bold font-mono text-rose-400">SKEPTIC AGENT (FALSIFIER)</h4>
                           <p className="text-xs text-slate-300">"{activeChat.skepticAgent.thesis}"</p>
                         </div>
+                      </div>
+                    )}
+
+                    {activeTab === 'matrix' && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-800 bg-[#12192b] text-slate-400 font-mono uppercase text-[10px]">
+                              <th className="p-2.5">Primary Source</th>
+                              <th className="p-2.5">Methodology</th>
+                              <th className="p-2.5 text-right">Cohort (N)</th>
+                              <th className="p-2.5">COI Audit</th>
+                              <th className="p-2.5 text-right">Score</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60">
+                            {activeChat.sources.map(src => (
+                              <tr key={src.id} className="hover:bg-[#162035]">
+                                <td className="p-2.5">
+                                  <div className="font-semibold text-slate-200">{src.title}</div>
+                                  <div className="text-[10px] font-mono text-slate-400">{src.journal} ({src.year})</div>
+                                </td>
+                                <td className="p-2.5 font-mono text-indigo-300">{src.type}</td>
+                                <td className="p-2.5 text-right font-mono font-bold text-cyan-400">N={src.sampleSize}</td>
+                                <td className="p-2.5">
+                                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">Clean</span>
+                                </td>
+                                <td className="p-2.5 text-right font-mono font-extrabold text-indigo-300">{src.credibilityScore}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>

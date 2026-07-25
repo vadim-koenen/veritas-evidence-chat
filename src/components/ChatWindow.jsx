@@ -9,24 +9,21 @@ import {
   Send, 
   Scale, 
   Search,
-  ArrowRight,
-  TrendingUp,
   BrainCircuit,
   CornerDownRight,
   BookOpen,
-  Sliders,
-  Award
+  Table,
+  ExternalLink
 } from 'lucide-react';
 
 export default function ChatWindow({ 
   activeChat, 
   onSelectSource, 
   onSendFollowUp,
-  onOpenNewModal,
   sensitivity
 }) {
   const [inputText, setInputText] = useState('');
-  const [activeTab, setActiveTab] = useState('synthesis'); // 'synthesis', 'debate', 'sources'
+  const [activeTab, setActiveTab] = useState('synthesis'); // 'synthesis', 'debate', 'matrix', 'sources'
 
   if (!activeChat) return null;
 
@@ -37,7 +34,6 @@ export default function ChatWindow({
     setInputText('');
   };
 
-  // Adjust score dynamically based on sensitivity sliders
   let calculatedScore = activeChat.truthConfidence;
   if (sensitivity.requireRCT) calculatedScore -= 5;
   if (sensitivity.excludeCOI) calculatedScore += 3;
@@ -46,7 +42,6 @@ export default function ChatWindow({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#070a12] overflow-hidden relative">
-      {/* Background Subtle Glow */}
       <div className="glow-background top-10 left-1/3 opacity-30" />
 
       {/* Main Conversation Stream */}
@@ -70,17 +65,15 @@ export default function ChatWindow({
           </div>
         </div>
 
-        {/* System Evidence Response Engine Output */}
+        {/* System Evidence Output */}
         <div className="flex gap-4 items-start">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-lg shadow-indigo-500/30">
             V
           </div>
 
           <div className="flex-1 space-y-5">
-            {/* Verdict Summary Card */}
             <div className="glass-panel p-6 border-indigo-500/30 relative overflow-hidden shadow-xl">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-
+              
               {/* Confidence Metric & Grade Header */}
               <div className="flex flex-wrap items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
@@ -110,7 +103,7 @@ export default function ChatWindow({
                 <div className="flex items-center gap-3 bg-[#111728] px-4 py-2.5 rounded-xl border border-slate-800">
                   <div className="text-right">
                     <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
-                      Truth Certainty Index
+                      Certainty Index
                     </div>
                     <div className="text-lg font-extrabold font-mono text-cyan-400">
                       {calculatedScore}%
@@ -126,7 +119,7 @@ export default function ChatWindow({
               </div>
 
               {/* View Mode Tabs */}
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mb-4">
                 <button
                   onClick={() => setActiveTab('synthesis')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
@@ -148,7 +141,19 @@ export default function ChatWindow({
                   }`}
                 >
                   <Scale className="w-3.5 h-3.5" />
-                  Adversarial Multi-Agent Debate Split
+                  Adversarial Debate Split
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('matrix')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    activeTab === 'matrix'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                      : 'bg-[#12192b] text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Table className="w-3.5 h-3.5" />
+                  Evidence Matrix Table
                 </button>
 
                 <button
@@ -167,7 +172,7 @@ export default function ChatWindow({
               {/* TAB 1: EXECUTIVE SYNTHESIS */}
               {activeTab === 'synthesis' && (
                 <div className="space-y-4">
-                  <p className="text-sm text-slate-200 leading-relaxed font-normal">
+                  <p className="text-sm text-slate-200 leading-relaxed">
                     {activeChat.summary}
                   </p>
 
@@ -176,7 +181,7 @@ export default function ChatWindow({
                       <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> Actionable Recommendation for Decision Makers
                     </h4>
                     <p className="text-xs text-slate-300 leading-normal">
-                      Do not rely on uncontrolled retrospective cohorts. Require verified clinical endpoint monitoring or isolate subgroup trials. Track ongoing randomized controlled trials (e.g. TAME endpoint releases).
+                      Do not rely on single-source claims. Require verified clinical endpoint monitoring or isolate cohort variables. Track ongoing randomized controlled trial releases.
                     </p>
                   </div>
                 </div>
@@ -185,14 +190,10 @@ export default function ChatWindow({
               {/* TAB 2: ADVERSARIAL MULTI-AGENT DEBATE SPLIT */}
               {activeTab === 'debate' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  {/* Proponent Agent Box */}
                   <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
                       <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" /> PROPONENT AGENT (CASE FOR)
-                      </span>
-                      <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">
-                        Supporting Evidence
                       </span>
                     </div>
                     <p className="text-xs font-medium text-slate-200 leading-relaxed">
@@ -213,14 +214,10 @@ export default function ChatWindow({
                     </div>
                   </div>
 
-                  {/* Skeptic Agent Box */}
                   <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-rose-500/20">
                       <span className="text-xs font-bold font-mono text-rose-400 flex items-center gap-1.5">
                         <XCircle className="w-4 h-4 text-rose-400" /> SKEPTIC AGENT (FALSIFIER)
-                      </span>
-                      <span className="text-[10px] font-mono bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">
-                        Counter-Evidence & Biases
                       </span>
                     </div>
                     <p className="text-xs font-medium text-slate-200 leading-relaxed">
@@ -243,12 +240,54 @@ export default function ChatWindow({
                 </div>
               )}
 
-              {/* TAB 3: PRIMARY LITERATURE SOURCES */}
+              {/* TAB 3: STRUCTURED EVIDENCE COMPARISON MATRIX TABLE */}
+              {activeTab === 'matrix' && (
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-[#12192b] text-slate-400 font-mono uppercase text-[10px]">
+                        <th className="p-3">Primary Source</th>
+                        <th className="p-3">Methodology</th>
+                        <th className="p-3 text-right">Sample (N)</th>
+                        <th className="p-3">COI Audit</th>
+                        <th className="p-3 text-right">Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {activeChat.sources.map((src) => (
+                        <tr 
+                          key={src.id} 
+                          onClick={() => onSelectSource(src)}
+                          className="hover:bg-[#162035] cursor-pointer transition-all"
+                        >
+                          <td className="p-3">
+                            <div className="font-semibold text-slate-200">{src.title}</div>
+                            <div className="text-[10px] font-mono text-slate-400">{src.journal} ({src.year})</div>
+                          </td>
+                          <td className="p-3 font-mono text-indigo-300">{src.type}</td>
+                          <td className="p-3 text-right font-mono font-bold text-cyan-400">N={src.sampleSize.toLocaleString()}</td>
+                          <td className="p-3">
+                            {src.coiFlag ? (
+                              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
+                                COI Flagged
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                                Clean / Independent
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-right font-mono font-extrabold text-indigo-300">{src.credibilityScore}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* TAB 4: PRIMARY LITERATURE SOURCES */}
               {activeTab === 'sources' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-400">
-                    Click any source card to view full methodology evaluation and conflict-of-interest audit in the side panel.
-                  </p>
                   <div className="grid grid-cols-1 gap-2.5">
                     {activeChat.sources.map((src) => (
                       <div
@@ -264,11 +303,6 @@ export default function ChatWindow({
                             <span className="text-[11px] font-mono text-slate-400">
                               {src.journal} ({src.year})
                             </span>
-                            {src.coiFlag && (
-                              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> COI Flag
-                              </span>
-                            )}
                           </div>
                           <h4 className="text-xs font-semibold text-slate-200 group-hover:text-white leading-snug">
                             {src.title}
@@ -283,9 +317,6 @@ export default function ChatWindow({
                           <div className="text-xs font-extrabold font-mono text-indigo-300">
                             {src.credibilityScore}%
                           </div>
-                          <span className="text-[10px] font-mono text-slate-400 block mt-1">
-                            N={src.sampleSize.toLocaleString()}
-                          </span>
                         </div>
                       </div>
                     ))}
@@ -307,15 +338,15 @@ export default function ChatWindow({
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask a follow-up evidence question (e.g. 'What if we filter only RCTs with N > 500?')..."
-              className="w-full py-3.5 px-4 pl-11 rounded-xl bg-[#12192b] border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-body"
+              placeholder="Ask a follow-up evidence question..."
+              className="w-full py-3.5 px-4 pl-11 rounded-xl bg-[#12192b] border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition-all font-body"
             />
             <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
           </div>
 
           <button
             type="submit"
-            className="py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all active:scale-95 flex-shrink-0"
+            className="py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all flex-shrink-0"
           >
             <span>Audit Query</span>
             <Send className="w-4 h-4" />
