@@ -7,7 +7,7 @@ import NewQueryModal from './components/NewQueryModal';
 import PricingModal from './components/PricingModal';
 import { MOCK_CHATS } from './data/mockData';
 import { fetchLiveAcademicEvidence } from './services/academicApi';
-import { fetchSecEdgarData } from './services/secEdgarApi';
+import { searchSecEdgar } from './services/secEdgarApi';
 import { runMultiAgentSynthesis } from './services/multiAgentEngine';
 
 export default function App() {
@@ -22,7 +22,7 @@ export default function App() {
 
   // Global Sensitivity Parameters State
   const [sensitivity, setSensitivity] = useState({
-    minSampleSize: 100,
+    minSampleSize: 50,
     recencyYears: 5,
     requireRCT: false,
     excludeCOI: false
@@ -33,11 +33,12 @@ export default function App() {
   // PURE REACTIVE SENSITIVITY PIPELINE (Patent Claim 3)
   // Re-evaluates Patent Claim 2 formula dynamically whenever sliders move!
   const activeChat = useMemo(() => {
-    if (!rawActiveChat || !rawActiveChat.rawSources) return rawActiveChat;
+    const sourcesToSynthesize = rawActiveChat?.rawSources || rawActiveChat?.sources || [];
+    if (!rawActiveChat || sourcesToSynthesize.length === 0) return rawActiveChat;
     
     const reSynthesized = runMultiAgentSynthesis(
       rawActiveChat.query,
-      rawActiveChat.rawSources,
+      sourcesToSynthesize,
       sensitivity
     );
 
@@ -77,7 +78,7 @@ export default function App() {
     try {
       let livePapers = [];
       if (newQueryData.category === 'vcdiligence') {
-        const secPapers = await fetchSecEdgarData(newQueryData.queryText);
+        const secPapers = await searchSecEdgar(newQueryData.queryText);
         const academicPapers = await fetchLiveAcademicEvidence(newQueryData.queryText);
         livePapers = [...secPapers, ...academicPapers];
       } else {

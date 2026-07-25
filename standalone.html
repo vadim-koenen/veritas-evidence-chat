@@ -44,7 +44,7 @@
                 journal: doc.source || 'NCBI MEDLINE',
                 year: 2024,
                 type: 'Peer-Reviewed Clinical Data',
-                sampleSize: realN, // null if not explicitly reported
+                sampleSize: realN,
                 doi: `10.1016/pubmed.${id}`,
                 credibilityScore: 92,
                 coiFlag: false,
@@ -78,7 +78,7 @@
         const requireRCT = sensitivity.requireRCT;
         const excludeCOI = sensitivity.excludeCOI;
 
-        const filtered = rawSources.filter(src => {
+        const filtered = (rawSources || []).filter(src => {
           if (minN > 0 && src.sampleSize !== null && src.sampleSize < minN) return false;
           if (requireRCT && !src.type.toLowerCase().includes('rct') && !src.type.toLowerCase().includes('benchmark')) return false;
           if (excludeCOI && src.coiFlag) return false;
@@ -159,6 +159,27 @@
               excerpt: 'Public software companies with COGS > 35% (LLM token costs) trade at a 40% discount to high-margin SaaS peers (75%+ gross margin).'
             }
           ]
+        },
+        {
+          id: 'query-1',
+          categoryId: 'biotech',
+          title: 'Metformin Healthspan & All-Cause Mortality in Non-Diabetics',
+          subtitle: 'Human longevity trials & meta-analyses evaluation',
+          timestamp: '15 mins ago',
+          query: 'Does Metformin extend healthspan and reduce all-cause mortality in non-diabetic human populations?',
+          rawSources: [
+            {
+              id: 's1',
+              title: 'Metformin as a Longevity Agent: Systematic Review & Meta-Analysis',
+              journal: 'Cell Metabolism',
+              year: 2024,
+              type: 'Systematic Review & Meta-Analysis',
+              sampleSize: 210000,
+              credibilityScore: 92,
+              coiFlag: false,
+              excerpt: 'Metformin treated individuals exhibited lower mortality rates (HR 0.76) relative to non-diabetic controls.'
+            }
+          ]
         }
       ];
 
@@ -186,8 +207,9 @@
 
         // Pure Reactive Sensitivity Pipeline (Patent Claim 3)
         const activeChat = useMemo(() => {
-          if (!rawActiveChat || !rawActiveChat.rawSources) return rawActiveChat;
-          const reSynthesized = computePatentGrade(rawActiveChat.query, rawActiveChat.rawSources, sensitivity);
+          const sourcesToSynthesize = rawActiveChat?.rawSources || rawActiveChat?.sources || [];
+          if (!rawActiveChat || sourcesToSynthesize.length === 0) return rawActiveChat;
+          const reSynthesized = computePatentGrade(rawActiveChat.query, sourcesToSynthesize, sensitivity);
           return { ...rawActiveChat, ...reSynthesized };
         }, [rawActiveChat, sensitivity]);
 
@@ -311,7 +333,7 @@
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] font-mono text-slate-400 uppercase block">Certainty Index</span>
-                        <span className="text-xl font-extrabold font-mono text-cyan-400">{activeChat.truthConfidence}%</span>
+                        <span className="text-xl font-extrabold font-mono text-cyan-400">{activeChat.truthConfidence ?? 0}%</span>
                       </div>
                     </div>
 

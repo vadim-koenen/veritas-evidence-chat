@@ -34,11 +34,8 @@ export default function ChatWindow({
     setInputText('');
   };
 
-  let calculatedScore = activeChat.truthConfidence;
-  if (sensitivity.requireRCT) calculatedScore -= 5;
-  if (sensitivity.excludeCOI) calculatedScore += 3;
-  if (sensitivity.minSampleSize > 500) calculatedScore -= 4;
-  calculatedScore = Math.max(10, Math.min(98, calculatedScore));
+  // Truth Confidence is calculated purely by Patent Claim 2 formula in App.jsx (Zero double counting!)
+  const displayScore = activeChat.truthConfidence ?? 0;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#070a12] overflow-hidden relative">
@@ -81,7 +78,8 @@ export default function ChatWindow({
                     <span className="text-xs text-slate-400 font-mono leading-none">GRADE</span>
                     <span className={`text-sm font-extrabold font-mono mt-0.5 ${
                       activeChat.consensusGrade === 'HIGH' ? 'text-emerald-400' :
-                      activeChat.consensusGrade === 'MODERATE' ? 'text-amber-400' : 'text-rose-400'
+                      activeChat.consensusGrade === 'MODERATE' ? 'text-amber-400' :
+                      activeChat.consensusGrade === 'UNSUBSTANTIATED' ? 'text-slate-400' : 'text-rose-400'
                     }`}>
                       {activeChat.consensusGrade}
                     </span>
@@ -90,7 +88,7 @@ export default function ChatWindow({
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-white font-heading">Synthesized Truth Verdict</h3>
                       <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded">
-                        GRADE Framework Evaluated
+                        Patent Claim 2 Formula
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
@@ -106,13 +104,13 @@ export default function ChatWindow({
                       Certainty Index
                     </div>
                     <div className="text-lg font-extrabold font-mono text-cyan-400">
-                      {calculatedScore}%
+                      {displayScore}%
                     </div>
                   </div>
                   <div className="w-1.5 h-10 bg-slate-800 rounded-full overflow-hidden flex flex-col justify-end">
                     <div 
                       className="w-full bg-gradient-to-t from-indigo-500 to-cyan-400 transition-all duration-500"
-                      style={{ height: `${calculatedScore}%` }}
+                      style={{ height: `${displayScore}%` }}
                     />
                   </div>
                 </div>
@@ -165,7 +163,7 @@ export default function ChatWindow({
                   }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  Primary Literature ({activeChat.sources.length})
+                  Primary Literature ({activeChat.sources?.length || 0})
                 </button>
               </div>
 
@@ -197,10 +195,10 @@ export default function ChatWindow({
                       </span>
                     </div>
                     <p className="text-xs font-medium text-slate-200 leading-relaxed">
-                      "{activeChat.proponentAgent.thesis}"
+                      "{activeChat.proponentAgent?.thesis}"
                     </p>
                     <div className="space-y-2 pt-1">
-                      {activeChat.proponentAgent.keyPoints.map((point, idx) => (
+                      {(activeChat.proponentAgent?.keyPoints || []).map((point, idx) => (
                         <div key={idx} className="p-2.5 rounded-lg bg-[#0e1624] border border-emerald-500/10 text-xs text-slate-300 flex items-start gap-2">
                           <CornerDownRight className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                           <div>
@@ -221,10 +219,10 @@ export default function ChatWindow({
                       </span>
                     </div>
                     <p className="text-xs font-medium text-slate-200 leading-relaxed">
-                      "{activeChat.skepticAgent.thesis}"
+                      "{activeChat.skepticAgent?.thesis}"
                     </p>
                     <div className="space-y-2 pt-1">
-                      {activeChat.skepticAgent.keyPoints.map((point, idx) => (
+                      {(activeChat.skepticAgent?.keyPoints || []).map((point, idx) => (
                         <div key={idx} className="p-2.5 rounded-lg bg-[#0e1624] border border-rose-500/10 text-xs text-slate-300 flex items-start gap-2">
                           <CornerDownRight className="w-3.5 h-3.5 text-rose-400 mt-0.5 flex-shrink-0" />
                           <div>
@@ -254,7 +252,7 @@ export default function ChatWindow({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {activeChat.sources.map((src) => (
+                      {(activeChat.sources || []).map((src) => (
                         <tr 
                           key={src.id} 
                           onClick={() => onSelectSource(src)}
@@ -265,7 +263,9 @@ export default function ChatWindow({
                             <div className="text-[10px] font-mono text-slate-400">{src.journal} ({src.year})</div>
                           </td>
                           <td className="p-3 font-mono text-indigo-300">{src.type}</td>
-                          <td className="p-3 text-right font-mono font-bold text-cyan-400">N={src.sampleSize.toLocaleString()}</td>
+                          <td className="p-3 text-right font-mono font-bold text-cyan-400">
+                            {src.sampleSize ? `N=${src.sampleSize.toLocaleString()}` : 'N/A'}
+                          </td>
                           <td className="p-3">
                             {src.coiFlag ? (
                               <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
@@ -289,7 +289,7 @@ export default function ChatWindow({
               {activeTab === 'sources' && (
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 gap-2.5">
-                    {activeChat.sources.map((src) => (
+                    {(activeChat.sources || []).map((src) => (
                       <div
                         key={src.id}
                         onClick={() => onSelectSource(src)}
