@@ -2,17 +2,338 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VERITAS AI | Next-Gen Adversarial Evidence Engine</title>
-    <meta name="description" content="Deep-Verification Micro-SaaS Chat engine with Triangulated Adversarial Evidence Synthesis and live source auditing." />
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- React & Babel Standalone CDNs + Tailwind CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      :root {
+        --bg-dark: #07090e;
+        --bg-surface: #0f1420;
+        --bg-card: #151c2c;
+        --font-heading: 'Plus Jakarta Sans', sans-serif;
+        --font-body: 'Inter', sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+      body {
+        background-color: var(--bg-dark);
+        color: #f8fafc;
+        font-family: var(--font-body);
+        overflow-x: hidden;
+      }
+      .glass-panel {
+        background: rgba(15, 20, 32, 0.85);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      // Mock Data
+      const INITIAL_CHATS = [
+        {
+          id: 'query-1',
+          categoryId: 'biotech',
+          title: 'Metformin Healthspan & All-Cause Mortality in Non-Diabetics',
+          subtitle: 'Human longevity trials & meta-analyses evaluation',
+          timestamp: '10 mins ago',
+          consensusGrade: 'MODERATE',
+          truthConfidence: 68,
+          gradeDescription: 'Promising observational & retrospective data, but randomized controlled trial (RCT) evidence in non-diabetic humans remains pending final TAME endpoints.',
+          query: 'Does Metformin extend healthspan and reduce all-cause mortality in non-diabetic human populations, or is the benefit limited to glycemic regulation in diabetics?',
+          summary: 'While Metformin significantly reduces all-cause mortality in type 2 diabetic patients compared to non-diabetic controls (a paradox attributed to glycemic control + pleiotropic anti-inflammatory effects), evidence in non-diabetic healthy adults shows mixed metabolic shifts with potential blunting of exercise-induced mitochondrial adaptations.',
+          proponentAgent: {
+            thesis: 'Metformin activates AMPK, inhibits mTORC1, and decreases systemic IL-6/TNF-alpha, conferring geroprotective effects independent of glycemic control.',
+            keyPoints: [
+              { text: 'Meta-analysis of 61 observational studies (N=210,000) showed 24% reduction in all-cause mortality vs non-diabetics.', strength: 'High observational' },
+              { text: 'Reduces cardiovascular event risk by 19% via eNOS upregulation.', strength: 'Moderate' }
+            ]
+          },
+          skepticAgent: {
+            thesis: 'Retrospective observational studies suffer from selection bias; recent RCTs show Metformin blunts VO2 max improvements and hypertrophic response to resistance training in healthy elderly adults.',
+            keyPoints: [
+              { text: 'MASTERS Trial (2019, N=109 RCT): Metformin blunted skeletal muscle hypertrophic response to resistance exercise in adults aged 65+.', strength: 'RCT (High Quality)' },
+              { text: 'Confounding by indication: Diabetic cohorts receive closer clinical monitoring than control groups.', strength: 'Methodological Risk' }
+            ]
+          },
+          sources: [
+            {
+              id: 's1',
+              title: 'Metformin as a Longevity Agent: A Systematic Review and Meta-Analysis of Human Studies',
+              journal: 'Cell Metabolism',
+              year: 2024,
+              type: 'Systematic Review & Meta-Analysis',
+              sampleSize: 210000,
+              credibilityScore: 92,
+              coiFlag: false,
+              excerpt: 'Metformin treated individuals exhibited lower mortality rates (HR 0.76, 95% CI 0.69–0.85) relative to non-diabetic controls.'
+            },
+            {
+              id: 's2',
+              title: 'Metformin Blunts Skeletal Muscle Adaptations to Resistance Exercise Training (MASTERS Trial)',
+              journal: 'Aging Cell',
+              year: 2019,
+              type: 'Double-Blind RCT',
+              sampleSize: 109,
+              credibilityScore: 96,
+              coiFlag: false,
+              excerpt: 'Metformin significantly attenuated gains in muscle mass and VO2 max following 14 weeks of progressive resistance training (p < 0.01).'
+            }
+          ]
+        },
+        {
+          id: 'query-2',
+          categoryId: 'deeptech',
+          title: 'Solid-State Battery Commercialization for Automotive EVs by 2028',
+          subtitle: 'Anode-free lithium metal vs sulfide electrolytes scalability',
+          timestamp: '1 hour ago',
+          consensusGrade: 'LOW',
+          truthConfidence: 42,
+          gradeDescription: 'Lab-scale energy density (450 Wh/kg) verified, but manufacturing yield, dendrite formation under fast charging, and stack pressure requirements prevent mass market adoption before 2029-2030.',
+          query: 'Is Solid-State Battery (SSB) technology ready for mass-market ($100/kWh at pack level) EV automotive production by 2028?',
+          summary: 'Current pilot-line solid-state cell outputs suffer from low yields (<60%), high uniaxial stack pressure requirements (>5 MPa), and interface degradation under sub-zero temperatures. Pilot vehicles will exist by 2027, but mass parity will not occur prior to 2030.',
+          proponentAgent: {
+            thesis: 'Sulfide-based solid electrolytes demonstrate >10 mS/cm ionic conductivity at room temperature, enabling 10-minute 80% fast charging.',
+            keyPoints: [
+              { text: 'Toyota & Idemitsu 2025 pilot line achieves 450 Wh/kg and 900 Wh/L cell level density.', strength: 'Pilot Demonstration' }
+            ]
+          },
+          skepticAgent: {
+            thesis: 'Lithium dendrite penetration along grain boundaries during high C-rate charging causes short circuits unless external mechanical pressure clamps (5-10 MPa) are applied.',
+            keyPoints: [
+              { text: 'Cell yields on automated high-speed roll-to-roll lines remain under 55%.', strength: 'Yield Deficit' }
+            ]
+          },
+          sources: [
+            {
+              id: 's4',
+              title: 'Manufacturing Cost and Scalability Bottlenecks of All-Solid-State Batteries',
+              journal: 'Nature Energy',
+              year: 2025,
+              type: 'Techno-Economic Analysis',
+              sampleSize: 15,
+              credibilityScore: 94,
+              coiFlag: false,
+              excerpt: 'Even under aggressive learning curve assumptions, cell pack costs for sulfide-based SSBs will remain above $160/kWh through 2028.'
+            }
+          ]
+        }
+      ];
+
+      function App() {
+        const [chats, setChats] = useState(INITIAL_CHATS);
+        const [activeId, setActiveId] = useState('query-1');
+        const [activeTab, setActiveTab] = useState('synthesis');
+        const [selectedSource, setSelectedSource] = useState(null);
+        const [isPanelOpen, setIsPanelOpen] = useState(true);
+        const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+
+        const [minN, setMinN] = useState(200);
+        const [requireRCT, setRequireRCT] = useState(true);
+
+        const activeChat = chats.find(c => c.id === activeId) || chats[0];
+
+        useEffect(() => {
+          if (window.lucide) {
+            window.lucide.createIcons();
+          }
+        }, [activeId, activeTab, isPanelOpen, selectedSource]);
+
+        let calculatedScore = activeChat.truthConfidence;
+        if (requireRCT) calculatedScore -= 4;
+        if (minN > 500) calculatedScore -= 5;
+        calculatedScore = Math.max(15, Math.min(98, calculatedScore));
+
+        const handleExport = () => {
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeChat, null, 2));
+          const dl = document.createElement('a');
+          dl.setAttribute("href", dataStr);
+          dl.setAttribute("download", `VERITAS_${activeChat.id}.json`);
+          dl.click();
+        };
+
+        return (
+          <div className="flex h-screen w-screen overflow-hidden bg-[#07090e] text-slate-100 font-body">
+            {/* Sidebar */}
+            <aside className="w-80 h-full bg-[#090d16] border-r border-[#1e293b] flex flex-col p-4 flex-shrink-0">
+              <div className="flex items-center gap-2.5 pb-4 border-b border-[#1e293b]">
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-lg">
+                  🛡️
+                </div>
+                <div>
+                  <h1 className="font-bold text-base text-white tracking-tight">VERITAS AI</h1>
+                  <p className="text-[11px] text-slate-400">Adversarial Evidence Engine</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsNewModalOpen(true)}
+                className="mt-4 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-medium text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+              >
+                <span>+ New Verification Query</span>
+              </button>
+
+              <div className="mt-6 flex-1 overflow-y-auto space-y-2">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold mb-2">
+                  Verified Evidence Audits
+                </p>
+                {chats.map(chat => (
+                  <div
+                    key={chat.id}
+                    onClick={() => { setActiveId(chat.id); setSelectedSource(null); }}
+                    className={`p-3 rounded-xl cursor-pointer border transition-all ${
+                      chat.id === activeId 
+                        ? 'bg-[#141c2e] border-indigo-500/50' 
+                        : 'bg-transparent border-transparent hover:bg-[#101726]'
+                    }`}
+                  >
+                    <div className="flex justify-between text-[10px] font-mono text-indigo-400 font-bold mb-1">
+                      <span>GRADE: {chat.consensusGrade}</span>
+                      <span className="text-slate-400">{chat.timestamp}</span>
+                    </div>
+                    <h3 className="text-xs font-semibold line-clamp-2 text-slate-200">{chat.title}</h3>
+                  </div>
+                ))}
+              </div>
+            </aside>
+
+            {/* Main Section */}
+            <div className="flex-1 flex flex-col h-full min-w-0">
+              {/* Header */}
+              <header className="h-16 border-b border-[#1e293b] bg-[#0c101c] px-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-white">{activeChat.title}</h2>
+                  <p className="text-xs text-slate-400">{activeChat.subtitle}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleExport}
+                    className="px-3 py-1.5 rounded-lg bg-[#162035] text-slate-200 text-xs font-medium border border-slate-700 hover:bg-[#1e2c4a]"
+                  >
+                    Export JSON Dossier
+                  </button>
+                  <button 
+                    onClick={() => setIsPanelOpen(!isPanelOpen)}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium shadow-md shadow-indigo-600/20"
+                  >
+                    Toggle Graph Panel
+                  </button>
+                </div>
+              </header>
+
+              {/* Chat View */}
+              <div className="flex-1 flex overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl mx-auto w-full">
+                  {/* User Query */}
+                  <div className="p-4 rounded-2xl bg-[#0f1626] border border-[#1e2a45]">
+                    <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase">Target Question</span>
+                    <h2 className="text-base font-semibold text-white mt-1">"{activeChat.query}"</h2>
+                  </div>
+
+                  {/* Verdict & Debate */}
+                  <div className="glass-panel p-6 border-indigo-500/30 space-y-5">
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                      <div>
+                        <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded">
+                          GRADE Evaluated
+                        </span>
+                        <h3 className="text-sm font-bold text-white mt-1">Synthesized Truth Verdict</h3>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-mono text-slate-400 uppercase block">Certainty Index</span>
+                        <span className="text-xl font-extrabold font-mono text-cyan-400">{calculatedScore}%</span>
+                      </div>
+                    </div>
+
+                    {/* View Tabs */}
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setActiveTab('synthesis')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTab === 'synthesis' ? 'bg-indigo-600 text-white' : 'bg-[#12192b] text-slate-400'}`}
+                      >
+                        Executive Synthesis
+                      </button>
+                      <button 
+                        onClick={() => setActiveTab('debate')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${activeTab === 'debate' ? 'bg-indigo-600 text-white' : 'bg-[#12192b] text-slate-400'}`}
+                      >
+                        Adversarial Multi-Agent Debate
+                      </button>
+                    </div>
+
+                    {activeTab === 'synthesis' && (
+                      <p className="text-sm text-slate-200 leading-relaxed">{activeChat.summary}</p>
+                    )}
+
+                    {activeTab === 'debate' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Proponent */}
+                        <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
+                          <h4 className="text-xs font-bold font-mono text-emerald-400">PROPONENT AGENT (CASE FOR)</h4>
+                          <p className="text-xs text-slate-300">"{activeChat.proponentAgent.thesis}"</p>
+                        </div>
+                        {/* Skeptic */}
+                        <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-2">
+                          <h4 className="text-xs font-bold font-mono text-rose-400">SKEPTIC AGENT (FALSIFIER)</h4>
+                          <p className="text-xs text-slate-300">"{activeChat.skepticAgent.thesis}"</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Side Panel */}
+                {isPanelOpen && (
+                  <aside className="w-80 h-full bg-[#0a0e19] border-l border-[#1e293b] p-4 overflow-y-auto space-y-6 flex-shrink-0">
+                    <div className="p-4 rounded-xl bg-[#111728] border border-indigo-500/20 space-y-4">
+                      <h3 className="text-xs font-bold text-indigo-300 font-mono">Live Sensitivity Simulator</h3>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-mono text-slate-300">
+                          <span>Min Sample Size (N)</span>
+                          <span className="text-cyan-400 font-bold">{minN}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="50" 
+                          max="1000" 
+                          value={minN} 
+                          onChange={(e) => setMinN(Number(e.target.value))}
+                          className="w-full h-1.5 bg-slate-800 rounded accent-indigo-500"
+                        />
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={requireRCT} 
+                          onChange={(e) => setRequireRCT(e.target.checked)}
+                          className="accent-indigo-500"
+                        />
+                        <span>Require Peer-Reviewed RCTs</span>
+                      </label>
+                    </div>
+                  </aside>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
   </body>
 </html>
