@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ChatWindow from './components/ChatWindow';
@@ -7,26 +7,45 @@ import NewQueryModal from './components/NewQueryModal';
 import PricingModal from './components/PricingModal';
 import { MOCK_CHATS } from './data/mockData';
 import { fetchLiveAcademicEvidence } from './services/academicApi';
+import { fetchSecEdgarData } from './services/secEdgarApi';
 import { runMultiAgentSynthesis } from './services/multiAgentEngine';
 
 export default function App() {
   const [chats, setChats] = useState(MOCK_CHATS);
-  const [activeChatId, setActiveChatId] = useState('query-1');
+  const [activeChatId, setActiveChatId] = useState('query-vc-1');
   const [activeCategory, setActiveCategory] = useState('all');
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [selectedSource, setSelectedSource] = useState(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Global Sensitivity Parameters State
   const [sensitivity, setSensitivity] = useState({
-    minSampleSize: 200,
+    minSampleSize: 100,
     recencyYears: 5,
-    requireRCT: true,
-    excludeCOI: true
+    requireRCT: false,
+    excludeCOI: false
   });
 
-  const activeChat = chats.find(c => c.id === activeChatId) || chats[0];
+  const rawActiveChat = chats.find(c => c.id === activeChatId) || chats[0];
+
+  // PURE REACTIVE SENSITIVITY PIPELINE (Patent Claim 3)
+  // Re-evaluates Patent Claim 2 formula dynamically whenever sliders move!
+  const activeChat = useMemo(() => {
+    if (!rawActiveChat || !rawActiveChat.rawSources) return rawActiveChat;
+    
+    const reSynthesized = runMultiAgentSynthesis(
+      rawActiveChat.query,
+      rawActiveChat.rawSources,
+      sensitivity
+    );
+
+    return {
+      ...rawActiveChat,
+      ...reSynthesized
+    };
+  }, [rawActiveChat, sensitivity]);
 
   const handleSelectChat = (id) => {
     setActiveChatId(id);
@@ -43,7 +62,7 @@ export default function App() {
       if (c.id === activeChatId) {
         return {
           ...c,
-          summary: `${c.summary}\n\n[Follow-up Audit Response]: "${text}" - Re-evaluating ${c.sources.length} active database records against current parameter bounds.`
+          summary: `${c.summary}\n\n[Follow-up Audit Response]: "${text}" - Re-evaluating literature against active sensitivity bounds.`
         };
       }
       return c;
@@ -51,33 +70,49 @@ export default function App() {
     setChats(updatedChats);
   };
 
-  // REAL LIVE ACADEMIC FETCH + MULTI-AGENT SYNTHESIS PIPELINE
+  // REAL LIVE FETCH + TAES SYNTHESIS PIPELINE
   const handleCreateNewQuery = async (newQueryData) => {
-    // 1. Fetch live real papers from PubMed & CrossRef
-    const livePapers = await fetchLiveAcademicEvidence(newQueryData.queryText);
+    setIsLoading(true);
 
-    // 2. Run Triangulated Adversarial Multi-Agent Engine
-    const synthesisResult = await runMultiAgentSynthesis(
-      newQueryData.queryText, 
-      livePapers, 
-      {
-        minSampleSize: newQueryData.minN,
-        requireRCT: newQueryData.rctOnly,
-        excludeCOI: true
+    try {
+      let livePapers = [];
+      if (newQueryData.category === 'vcdiligence') {
+        const secPapers = await fetchSecEdgarData(newQueryData.queryText);
+        const academicPapers = await fetchLiveAcademicEvidence(newQueryData.queryText);
+        livePapers = [...secPapers, ...academicPapers];
+      } else {
+        livePapers = await fetchLiveAcademicEvidence(newQueryData.queryText);
       }
-    );
 
-    const newChat = {
-      id: `query-${Date.now()}`,
-      categoryId: newQueryData.category,
-      title: newQueryData.queryText,
-      subtitle: `Live PubMed & CrossRef Multi-Agent Audit (N > ${newQueryData.minN})`,
-      timestamp: 'Just now',
-      ...synthesisResult
-    };
+      const synthesisResult = runMultiAgentSynthesis(
+        newQueryData.queryText, 
+        livePapers, 
+        {
+          minSampleSize: newQueryData.minN,
+          requireRCT: newQueryData.rctOnly,
+          excludeCOI: false,
+          recencyYears: 5
+        }
+      );
 
-    setChats([newChat, ...chats]);
-    setActiveChatId(newChat.id);
+      const newChat = {
+        id: `query-${Date.now()}`,
+        categoryId: newQueryData.category,
+        title: newQueryData.queryText,
+        subtitle: `Live Multi-Agent Audit (${newQueryData.category === 'vcdiligence' ? 'SEC EDGAR Filings' : 'PubMed Index'})`,
+        timestamp: 'Just now',
+        rawSources: livePapers, // Store raw un-filtered sources for reactive slider re-synthesis
+        ...synthesisResult
+      };
+
+      setChats([newChat, ...chats]);
+      setActiveChatId(newChat.id);
+    } catch (err) {
+      console.error('Audit query error:', err);
+    } finally {
+      setIsLoading(false);
+      setIsNewModalOpen(false);
+    }
   };
 
   const handleExportReport = () => {
@@ -92,7 +127,6 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#07090e] font-body text-slate-100">
-      {/* Sidebar Navigation */}
       <Sidebar
         chats={chats}
         activeChatId={activeChatId}
@@ -102,7 +136,6 @@ export default function App() {
         onSelectCategory={setActiveCategory}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full min-w-0">
         <Header
           activeChat={activeChat}
@@ -118,7 +151,6 @@ export default function App() {
             activeChat={activeChat}
             onSelectSource={handleSelectSource}
             onSendFollowUp={handleSendFollowUp}
-            onOpenNewModal={() => setIsNewModalOpen(true)}
             sensitivity={sensitivity}
           />
 
@@ -133,14 +165,13 @@ export default function App() {
         </div>
       </div>
 
-      {/* New Query Modal */}
       <NewQueryModal
         isOpen={isNewModalOpen}
         onClose={() => setIsNewModalOpen(false)}
         onSubmitQuery={handleCreateNewQuery}
+        isLoading={isLoading}
       />
 
-      {/* Stripe Pricing & Checkout Modal */}
       <PricingModal
         isOpen={isPricingOpen}
         onClose={() => setIsPricingOpen(false)}

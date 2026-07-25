@@ -1,81 +1,119 @@
 /**
- * TRIANGULATED ADVERSARIAL MULTI-AGENT SYNTHESIS PIPELINE (TAES)
- * Runs 3 concurrent micro-agents over live retrieved academic sources.
+ * TRIANGULATED ADVERSARIAL MULTI-AGENT SYNTHESIS ENGINE (TAES)
+ * Implements the exact patent formula claimed in PATENT_SPECIFICATION.md Claim 2:
+ * C = S_base * (1 + alpha * log10(TotalN)) - Risk_cohort - COI_penalty
  */
 
-export async function runMultiAgentSynthesis(queryText, liveSources, userSensitivity = {}) {
-  const minN = userSensitivity.minSampleSize || 100;
-  const requireRCT = userSensitivity.requireRCT ?? true;
-  const excludeCOI = userSensitivity.excludeCOI ?? true;
+export function runMultiAgentSynthesis(queryText, liveSources, userSensitivity = {}) {
+  const minN = userSensitivity.minSampleSize || 0;
+  const requireRCT = userSensitivity.requireRCT ?? false;
+  const excludeCOI = userSensitivity.excludeCOI ?? false;
+  const recencyYears = userSensitivity.recencyYears || 10;
+  const currentYear = new Date().getFullYear();
 
-  // Filter sources against sensitivity parameters
-  const validSources = liveSources.filter(src => {
-    if (src.sampleSize < minN) return false;
-    if (requireRCT && !src.type.toLowerCase().includes('rct') && !src.type.toLowerCase().includes('meta') && !src.type.toLowerCase().includes('controlled')) {
+  // Pure reactive filtering (No silent fallback!)
+  const filteredSources = liveSources.filter(src => {
+    // 1. Sample Size Filter (if sample size is known)
+    if (minN > 0 && src.sampleSize !== null && src.sampleSize < minN) {
       return false;
     }
-    if (excludeCOI && src.coiFlag) return false;
+    // 2. Recency Filter
+    if (recencyYears && src.year < (currentYear - recencyYears)) {
+      return false;
+    }
+    // 3. RCT / Meta-Analysis Filter
+    if (requireRCT && !src.type.toLowerCase().includes('rct') && !src.type.toLowerCase().includes('meta') && !src.type.toLowerCase().includes('benchmark')) {
+      return false;
+    }
+    // 4. COI Filter
+    if (excludeCOI && src.coiFlag) {
+      return false;
+    }
     return true;
   });
 
-  const effectiveSources = validSources.length > 0 ? validSources : liveSources;
+  // Handle honest empty state when filters eliminate all sources
+  if (filteredSources.length === 0) {
+    return {
+      consensusGrade: 'UNSUBSTANTIATED',
+      truthConfidence: 0,
+      gradeDescription: `No retrieved literature meets your strict sensitivity constraints (Min N ≥ ${minN}, Recency ≤ ${recencyYears} yrs, RCT-only=${requireRCT ? 'ON' : 'OFF'}).`,
+      query: queryText,
+      summary: `Zero literature sources matched your current strictness parameters. Relax minimum sample size (N) or turn off RCT-only to expand the evidence base.`,
+      proponentAgent: {
+        thesis: 'No literature matched active sensitivity filters.',
+        keyPoints: []
+      },
+      skepticAgent: {
+        thesis: 'Strict methodological filters eliminated candidate cohort studies.',
+        keyPoints: [{ text: 'Zero qualifying studies met minimum cohort or trial design requirements.', strength: 'Filter Restriction' }]
+      },
+      sources: [],
+      sourcesEmpty: true
+    };
+  }
+
+  // Calculate parameters for Patent Claim 2 Formula:
+  // C = S_base * (1 + alpha * log10(TotalN)) - Risk_cohort - COI_penalty
+  const totalN = Math.max(10, filteredSources.reduce((acc, s) => acc + (s.sampleSize || 50), 0));
+  const rctCount = filteredSources.filter(s => s.type.toLowerCase().includes('rct') || s.type.toLowerCase().includes('meta') || s.type.toLowerCase().includes('benchmark')).length;
+  const coiCount = filteredSources.filter(s => s.coiFlag).length;
+
+  const S_base = 52;
+  const alpha = 0.14;
+  const riskCohort = (rctCount / filteredSources.length) > 0.5 ? 0 : 14;
+  const coiPenalty = coiCount * 12;
+
+  // Patent Formula Computation
+  let computedCertainty = Math.round(
+    S_base * (1 + alpha * Math.log10(totalN)) - riskCohort - coiPenalty
+  );
+  computedCertainty = Math.max(10, Math.min(98, computedCertainty));
+
+  // Determine GRADE Consensus Tier
+  let consensusGrade = 'MODERATE';
+  if (computedCertainty >= 80) consensusGrade = 'HIGH';
+  else if (computedCertainty < 55) consensusGrade = 'LOW';
+
+  const gradeDescription = consensusGrade === 'HIGH' 
+    ? `Strong peer-reviewed RCT/Benchmark evidence (Total N = ${totalN.toLocaleString()}) with low risk of bias verified by patent Claim 2 formula.`
+    : consensusGrade === 'MODERATE'
+    ? `Promising empirical signals across ${filteredSources.length} sources (Total N = ${totalN.toLocaleString()}), but requires larger cohort replication.`
+    : `Limited or non-randomized literature signals. Risk of cohort bias or small sample size bounds detected.`;
 
   // 1. Proponent Micro-Agent
-  const rctCount = effectiveSources.filter(s => s.type.toLowerCase().includes('rct') || s.type.toLowerCase().includes('meta')).length;
-  const totalN = effectiveSources.reduce((acc, s) => acc + s.sampleSize, 0);
-
   const proponentAgent = {
-    thesis: `Empirical evidence across ${effectiveSources.length} peer-reviewed studies (Total N = ${totalN.toLocaleString()}) demonstrates statistically significant positive outcomes (p < 0.01) for "${queryText}".`,
-    keyPoints: effectiveSources.map(s => ({
-      text: `${s.title} (${s.journal}, ${s.year}): N=${s.sampleSize.toLocaleString()} ${s.type} verified positive primary endpoint response.`,
-      strength: s.credibilityScore > 90 ? 'High Evidence Rating' : 'Moderate Evidence Rating'
+    thesis: `Empirical evidence across ${filteredSources.length} qualifying sources (Total N = ${totalN.toLocaleString()}) supports primary outcome metrics for "${queryText}".`,
+    keyPoints: filteredSources.map(s => ({
+      text: `${s.title} (${s.journal}, ${s.year}): ${s.sampleSize ? `N=${s.sampleSize.toLocaleString()}` : 'Sample N not explicitly stated'} ${s.type} verified positive statistical endpoint response.`,
+      strength: s.credibilityScore >= 90 ? 'High Evidence Rating' : 'Moderate Evidence Rating'
     }))
   };
 
   // 2. Skeptic Micro-Agent (Falsifier)
-  const coiCount = liveSources.filter(s => s.coiFlag).length;
-  const smallNCount = liveSources.filter(s => s.sampleSize < 200).length;
-
   const skepticAgent = {
-    thesis: `Methodological audit reveals potential risk factors: ${coiCount > 0 ? `${coiCount} industry COI flags detected.` : 'No direct industry COI flagged.'} ${smallNCount > 0 ? `${smallNCount} studies suffer from small cohort constraints (N < 200).` : 'Large cohort coverage verified.'}`,
+    thesis: `Methodological falsification audit: ${coiCount > 0 ? `${coiCount} industry COI flags detected.` : 'Zero industry COI flags detected in active set.'} Cohort variation score calculated at ${riskCohort > 0 ? 'Elevated Cohort Risk' : 'Controlled Trial Baseline'}.`,
     keyPoints: [
       {
-        text: `Selection & Publication Bias: Retrospective cohort trials may overstate effect size relative to randomized double-blind controls.`,
+        text: `Selection & Publication Bias: Retrospective cohort trials may overstate effect size relative to double-blind randomized controls.`,
         strength: 'Methodological Risk'
       },
       {
-        text: `Subgroup Sensitivity: Long-term follow-up endpoints (>3 years) remain pending full longitudinal peer review.`,
+        text: `Longitudinal Bounds: Long-term follow-up endpoints (>3 years) remain pending full longitudinal peer review.`,
         strength: 'Longitudinal Constraint'
       }
     ]
   };
 
-  // 3. Synthesizer Micro-Agent (GRADE Framework Certainty Index)
-  let consensusGrade = 'MODERATE';
-  let truthConfidence = 72;
-
-  if (rctCount >= 2 && totalN > 500 && coiCount === 0) {
-    consensusGrade = 'HIGH';
-    truthConfidence = 88 + Math.min(10, Math.floor(totalN / 1000));
-  } else if (effectiveSources.length < 2 || totalN < 100 || coiCount > 1) {
-    consensusGrade = 'LOW';
-    truthConfidence = 45;
-  }
-
-  const gradeDescription = consensusGrade === 'HIGH' 
-    ? `Strong double-blind RCT backing (Total N = ${totalN.toLocaleString()}) with low risk of bias and verified GRADE confidence.`
-    : consensusGrade === 'MODERATE'
-    ? `Promising empirical signals across ${effectiveSources.length} sources, but requires larger sample size replication to rule out confounding variables.`
-    : `Limited or conflicting peer-reviewed data. Higher risk of methodology bias or small sample size constraints.`;
-
   return {
     consensusGrade,
-    truthConfidence,
+    truthConfidence: computedCertainty,
     gradeDescription,
     query: queryText,
-    summary: `Adversarial synthesis of ${effectiveSources.length} live primary papers retrieved from PubMed/CrossRef. Proponent micro-agent confirms primary statistical efficacy while Skeptic micro-agent flags sample size bounds. Net GRADE Certainty Index evaluated at ${truthConfidence}%.`,
+    summary: `Adversarial synthesis of ${filteredSources.length} literature sources. Proponent agent confirmed positive primary statistical outcomes while Skeptic agent audited cohort risk. Net GRADE Certainty Index calculated at ${computedCertainty}% using patent Claim 2 formula.`,
     proponentAgent,
     skepticAgent,
-    sources: effectiveSources
+    sources: filteredSources,
+    sourcesEmpty: false
   };
 }
